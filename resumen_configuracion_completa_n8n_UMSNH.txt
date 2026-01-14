@@ -1,0 +1,166 @@
+
+RESUMEN COMPLETO DEL WORKFLOW n8n – UMSNH
+=======================================
+
+FLUJO GENERAL
+-------------
+Google Form → Google Sheets → n8n → Google Gemini (IA) → Gmail (Respuesta automática)
+
+---------------------------------------
+NODO 1: GOOGLE SHEETS TRIGGER
+---------------------------------------
+
+Nombre del nodo:
+Google Sheets Trigger
+
+Credencial:
+Google Sheets Trigger account (OAuth2)
+
+Parámetros:
+- Poll Times:
+  - Mode: Every Minute
+
+- Document:
+  - From list
+  - Nombre: "Comentarios del cliente (respuestas)"
+
+- Sheet:
+  - From list
+  - Nombre: "Respuestas de formulario 1"
+
+- Trigger On:
+  - Row Added
+
+Campos leídos del Sheet:
+- Marca temporal
+- Tipo de comentarios
+- Comentarios
+- Sugerencias de mejora
+- Nombre
+- Correo electrónico
+
+Función:
+Detecta cada nueva fila agregada desde el formulario y envía los datos al flujo.
+
+---------------------------------------
+NODO 2: GOOGLE GEMINI (IA)
+---------------------------------------
+
+Nombre del nodo:
+Google Gemini
+
+Credencial:
+Google Gemini (PaLM) API account
+
+Host:
+https://generativelanguage.googleapis.com
+
+API Key:
+(API Key generada en Google AI Studio – NO es la misma que OAuth de Google Sheets o Gmail)
+
+Configuración:
+- Resource: Text
+- Operation: Message a Model
+- Model: gemini-pro (o el disponible en lista)
+
+Messages:
+- Role: User
+
+PROMPT UTILIZADO:
+-----------------
+Eres un asistente de soporte técnico institucional de la Universidad Michoacana de San Nicolás de Hidalgo (UMSNH).
+
+Redacta una respuesta clara, respetuosa y profesional al siguiente comentario enviado por un usuario.
+
+Nombre del usuario: {{ $node["Google Sheets Trigger"].json["Nombre"] }}
+Correo electrónico: {{ $node["Google Sheets Trigger"].json["Correo electrónico"] }}
+Tipo de comentario: {{ $node["Google Sheets Trigger"].json["Tipo de comentarios"] }}
+Comentario del usuario:
+{{ $node["Google Sheets Trigger"].json["Comentarios"] }}
+
+La respuesta debe:
+- Agradecer el reporte
+- Explicar posibles causas
+- Proponer pasos de solución
+- Solicitar información adicional si es necesario
+- Cerrar con tono institucional y amable
+
+Simplify Output:
+ON
+
+Salida utilizada:
+$json.content.parts[0].text
+
+---------------------------------------
+NODO 3: GMAIL – SEND A MESSAGE
+---------------------------------------
+
+Nombre del nodo:
+Send a message
+
+Credencial:
+Gmail account 2 (OAuth2)
+
+Configuración:
+- Resource: Message
+- Operation: Send
+
+To:
+{{ $node["Google Sheets Trigger"].json["Correo electrónico"] }}
+
+Subject:
+Respuesta a tu comentario / queja – UMSNH
+
+Email Type:
+HTML
+
+MENSAJE COMPLETO (HTML):
+------------------------
+
+<h2>Respuesta a tu comentario / queja – UMSNH</h2>
+
+<p>Estimado/a <b>{{ $node["Google Sheets Trigger"].json["Nombre"] }}</b>,</p>
+
+<hr>
+
+<h3>📩 Comentario recibido</h3>
+
+<p><b>Nombre:</b> {{ $node["Google Sheets Trigger"].json["Nombre"] }}</p>
+<p><b>Correo electrónico:</b> {{ $node["Google Sheets Trigger"].json["Correo electrónico"] }}</p>
+<p><b>Tipo:</b> {{ $node["Google Sheets Trigger"].json["Tipo de comentarios"] }}</p>
+<p><b>Fecha y hora:</b> {{ $node["Google Sheets Trigger"].json["Marca temporal"] }}</p>
+
+<p><b>Mensaje del usuario:</b></p>
+<blockquote style="background:#f5f5f5; padding:10px; border-left:4px solid #999;">
+{{ $node["Google Sheets Trigger"].json["Comentarios"] }}
+</blockquote>
+
+<hr>
+
+<h3>🛠️ Respuesta de Soporte UMSNH</h3>
+
+<p>
+{{ $json.content.parts[0].text }}
+</p>
+
+<hr>
+
+<p style="font-size:12px;color:#666;">
+Este mensaje fue generado automáticamente por el sistema de atención de la Universidad Michoacana de San Nicolás de Hidalgo (UMSNH).
+</p>
+
+---------------------------------------
+ESTADO FINAL
+---------------------------------------
+
+✔ Flujo funcional
+✔ IA generando respuestas automáticas
+✔ Correo enviado correctamente al usuario
+✔ Datos trazables (nombre, correo, comentario, fecha)
+
+Documento generado para:
+- Documentación técnica
+- Auditoría
+- Replicación del sistema
+- Escalamiento institucional
+
